@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Favorites</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <nav>
+    <a href="/">Search</a>
+    <a href="/favorites.html">&#9829; Favorites</a>
+    <a href="/swagger">API test page</a>
+  </nav>
+
+  <h1>&#9829; My Favorites</h1>
+
+  <p id="empty" class="legend" hidden>No favorites yet. Go to Search and tap a heart.</p>
+  <ul id="list"></ul>
+
+  <script src="site.js"></script>
+  <script>
+    async function loadFavorites() {
+      const response = await fetch("/api/favorites");
+      const favorites = await response.json();
+
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+
+      document.getElementById("empty").hidden = favorites.length > 0;
+
+      for (const book of favorites) {
+        list.appendChild(makeRow(book, true, () => removeFavorite(book.id)));
+      }
+    }
+
+    async function removeFavorite(id) {
+      await fetch("/api/favorites/" + id, { method: "DELETE" });
+      loadFavorites();
+    }
+
+    loadFavorites();
+  </script>
+</body>
+</html>

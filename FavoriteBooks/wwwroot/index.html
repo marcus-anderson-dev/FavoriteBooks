@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Find a Book</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <nav>
+    <a href="/">Search</a>
+    <a href="/favorites.html">&#9829; Favorites</a>
+    <a href="/swagger">API test page</a>
+  </nav>
+
+  <h1>Find a Book</h1>
+  
+
+  <form onsubmit="searchBooks(); return false;">
+    <input id="searchBox" placeholder="Enter Book Title">
+    <button type="submit">Search</button>
+  </form>
+
+  <p id="message"></p>
+  <p class="legend">Gold is Classic (published before 1950) | Blue is Modern (After 1950).</p>
+
+  <ul id="results"></ul>
+
+  <script src="site.js"></script>
+  <script>
+    let results = [];
+    let favorites = [];
+
+    async function loadFavorites() {
+      const response = await fetch("/api/favorites");
+      favorites = await response.json();
+    }
+
+    async function searchBooks() {
+      const message = document.getElementById("message");
+      const words = document.getElementById("searchBox").value.trim();
+
+      message.textContent = "";
+      if (words === "") {
+        message.textContent = "Type something to search for.";
+        return;
+      }
+
+      const response = await fetch("/api/search?q=" + encodeURIComponent(words));
+
+      if (!response.ok) {
+        message.textContent = await response.text();
+        return;
+      }
+
+      results = await response.json();
+      if (results.length === 0) {
+        message.textContent = "No books found. Try different words.";
+      }
+
+      await loadFavorites();
+      showResults();
+    }
+
+    function showResults() {
+      const list = document.getElementById("results");
+      list.innerHTML = "";
+
+      for (const book of results) {
+        const saved = favorites.find(f => f.key === book.key);
+        const row = makeRow(book, saved !== undefined, () => toggleHeart(book, saved));
+        list.appendChild(row);
+      }
+    }
+
+    async function toggleHeart(book, saved) {
+      if (saved) {
+        await fetch("/api/favorites/" + saved.id, { method: "DELETE" });
+      } else {
+        await fetch("/api/favorites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(book)
+        });
+      }
+
+      await loadFavorites();
+      showResults();
+    }
+  </script>
+</body>
+</html>
